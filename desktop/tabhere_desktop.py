@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import ctypes
+import http.client
 import json
 import logging
 import os
@@ -35,6 +36,13 @@ DEFAULT_CONFIG = {
     "temperature": 0.2,
     "enabled": True,
     "startup": True,
+}
+STATUS_LABELS = {
+    "idle": "就绪",
+    "working": "... 生成中",
+    "success": "✓ 已完成",
+    "error": "! 失败",
+    "paused": "已暂停",
 }
 SYSTEM_PROMPT = """You are an ICPC-level competitive-programming solver.
 Correctness has the highest priority. Internally verify the final algorithm against the full statement, constraints, samples, edge cases, integer overflow, input/output format, time and memory limits, and Java 17 compilation.
@@ -210,21 +218,56 @@ def foreground_is_self() -> bool:
     return process_id.value == os.getpid()
 
 
+def tray_image(status: str):
+    from PIL import Image, ImageDraw
+
+    colors = {"idle": "#2563eb", "working": "#2563eb", "success": "#16a34a", "error": "#dc2626", "paused": "#6b7280"}
+    image = Image.new("RGB", (64, 64), colors[status])
+    draw = ImageDraw.Draw(image)
+    if status == "working":
+        for x in (18, 32, 46):
+            draw.ellipse((x - 4, 28, x + 4, 36), fill="white")
+    elif status == "success":
+        draw.line((14, 33, 27, 46, 51, 18), fill="white", width=7, joint="curve")
+    elif status == "error":
+        draw.line((32, 13, 32, 39), fill="white", width=7)
+        draw.ellipse((28, 47, 36, 55), fill="white")
+    elif status == "paused":
+        draw.rectangle((20, 16, 27, 48), fill="white")
+        draw.rectangle((37, 16, 44, 48), fill="white")
+    else:
+        draw.line((17, 17, 47, 17), fill="white", width=7)
+        draw.line((32, 17, 32, 49), fill="white", width=7)
+    return image
+
+
 def extract_output(value: str) -> str:
     match = re.search(r"```java(?:\r?\n)?([\s\S]*?)```", value, re.IGNORECASE)
     return match.group(1) if match else value
 
 
 def request_json(url: str, api_key: str, payload: dict) -> dict:
+    payload = {**payload, "stream": False}
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Connection": "close",
+        },
         method="POST",
     )
     try:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            return json.loads(response.read().decode("utf-8"))
+            try:
+                body = response.read()
+            except http.client.IncompleteRead as error:
+                body = error.partial
+            if not body:
+                raise RuntimeError("API 返回了空响应")
+            return json.loads(body.decode("utf-8"))
     except urllib.error.HTTPError as error:
         raise RuntimeError(f"API HTTP {error.code}") from error
 
@@ -313,6 +356,7 @@ class TabHereApp:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_settings)
         self.settings: tk.Toplevel | None = None
         self.tray = None
+        self.status = "idle" if self.config["enabled"] else "paused"
         set_startup(bool(self.config["startup"]))
 
     def run(self) -> None:
@@ -325,17 +369,15 @@ class TabHereApp:
 
     def start_tray(self) -> None:
         import pystray
-        from PIL import Image, ImageDraw
 
-        image = Image.new("RGB", (64, 64), "#2563eb")
-        draw = ImageDraw.Draw(image)
-        draw.text((21, 12), "T", fill="white", stroke_width=1)
         menu = pystray.Menu(
+            pystray.MenuItem(lambda _: f"状态：{STATUS_LABELS[self.status]}", lambda *_: None, enabled=False),
+            pystray.Menu.SEPARATOR,
             pystray.MenuItem(lambda _: "暂停监听" if self.config["enabled"] else "恢复监听", self.toggle_enabled),
             pystray.MenuItem("设置", lambda _icon, _item: self.ui_queue.put(("settings", ""))),
             pystray.MenuItem("退出", lambda _icon, _item: self.ui_queue.put(("exit", ""))),
         )
-        self.tray = pystray.Icon("TabHereDesktop", image, APP_NAME, menu)
+        self.tray = pystray.Icon("TabHereDesktop", tray_image(self.status), f"{APP_NAME} - {STATUS_LABELS[self.status]}", menu)
         self.tray.run()
 
     def process_ui_queue(self) -> None:
@@ -356,27 +398,35 @@ class TabHereApp:
             pass
         self.root.after(100, self.process_ui_queue)
 
-    def notify(self, message: str) -> None:
+    def set_status(self, status: str) -> None:
+        self.status = status
+        if self.tray:
+            self.tray.icon = tray_image(status)
+            self.tray.title = f"{APP_NAME} - {STATUS_LABELS[status]}"
+            self.tray.update_menu()
+
+    def notify(self, message: str, status: str | None = None) -> None:
+        if status:
+            self.set_status(status)
         logging.info(message)
         self.ui_queue.put(("notify", message))
 
     def toggle_enabled(self, *_args) -> None:
         self.config["enabled"] = not self.config["enabled"]
         save_config(self.config)
-        if self.tray:
-            self.tray.update_menu()
-        self.notify("监听已恢复" if self.config["enabled"] else "监听已暂停")
+        status = "idle" if self.config["enabled"] else "paused"
+        self.notify("监听已恢复" if self.config["enabled"] else "监听已暂停", status)
 
     def on_copy(self, text: str) -> None:
         if not self.config["api_key"]:
-            self.notify("请先配置 API Key")
+            self.notify("请先配置 API Key", "error")
             self.ui_queue.put(("settings", ""))
             return
         with self.request_lock:
             self.latest_request += 1
             request_id = self.latest_request
             config = dict(self.config)
-        self.notify("AI 正在生成 Java 代码…")
+        self.notify("AI 正在生成 Java 代码…", "working")
         threading.Thread(target=self.request_answer, args=(request_id, text, config), daemon=True).start()
 
     def request_answer(self, request_id: int, text: str, config: dict) -> None:
@@ -388,12 +438,12 @@ class TabHereApp:
                 if request_id != self.latest_request:
                     return
                 write_clipboard_text(answer)
-            self.notify("Java 代码已写入剪贴板")
+            self.notify("Java 代码已写入剪贴板", "success")
         except Exception as error:
             logging.exception("AI request failed")
             with self.request_lock:
                 if request_id == self.latest_request:
-                    self.notify(f"生成失败：{str(error)[:160]}")
+                    self.notify(f"生成失败：{str(error)[:160]}", "error")
 
     def show_settings(self) -> None:
         if self.settings and self.settings.winfo_exists():
@@ -458,8 +508,7 @@ class TabHereApp:
             except Exception as error:
                 messagebox.showerror(APP_NAME, f"保存失败：{error}", parent=window)
                 return
-            if self.tray:
-                self.tray.update_menu()
+            self.set_status("idle" if self.config["enabled"] else "paused")
             self.hide_settings()
             self.notify("设置已保存")
 
@@ -488,6 +537,8 @@ def self_test() -> None:
     assert extract_output("class Main {}") == "class Main {}"
     assert urlparse(DEFAULT_CONFIG["base_url"]).scheme == "https"
     assert "Output code only" in SYSTEM_PROMPT and "Never output comments" in SYSTEM_PROMPT
+    assert tray_image("working").size == (64, 64)
+    assert tray_image("success").getpixel((0, 0)) != tray_image("error").getpixel((0, 0))
     assert pystray.Icon("test", Image.new("RGB", (1, 1))).name == "test"
     print("TabHere Desktop self-check passed")
 
