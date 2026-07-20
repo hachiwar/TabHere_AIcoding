@@ -248,28 +248,34 @@ def extract_output(value: str) -> str:
 
 def request_json(url: str, api_key: str, payload: dict) -> dict:
     payload = {**payload, "stream": False}
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Connection": "close",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            try:
-                body = response.read()
-            except http.client.IncompleteRead as error:
-                body = error.partial
-            if not body:
-                raise RuntimeError("API 返回了空响应")
-            return json.loads(body.decode("utf-8"))
-    except urllib.error.HTTPError as error:
-        raise RuntimeError(f"API HTTP {error.code}") from error
+    for attempt in range(2):
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Connection": "close",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+                try:
+                    body = response.read()
+                except http.client.IncompleteRead as error:
+                    body = error.partial
+                if body:
+                    try:
+                        return json.loads(body.decode("utf-8"))
+                    except json.JSONDecodeError:
+                        pass
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(f"API HTTP {error.code}") from error
+        if attempt == 0:
+            time.sleep(0.2)
+    raise RuntimeError("API 连续两次返回空响应")
 
 
 def generate_answer(text: str, config: dict) -> str:
@@ -530,6 +536,20 @@ class TabHereApp:
 def self_test() -> None:
     import pystray
     from PIL import Image
+    from unittest.mock import patch
+
+    class FakeResponse:
+        def __init__(self, body: bytes):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return self.body
 
     secret = "sk-test-中文"
     assert unprotect(protect(secret)) == secret
@@ -539,6 +559,8 @@ def self_test() -> None:
     assert "Output code only" in SYSTEM_PROMPT and "Never output comments" in SYSTEM_PROMPT
     assert tray_image("working").size == (64, 64)
     assert tray_image("success").getpixel((0, 0)) != tray_image("error").getpixel((0, 0))
+    with patch("urllib.request.urlopen", side_effect=[FakeResponse(b""), FakeResponse(b'{"ok":true}')]), patch("time.sleep"):
+        assert request_json("https://example.test", "sk-test", {}) == {"ok": True}
     assert pystray.Icon("test", Image.new("RGB", (1, 1))).name == "test"
     print("TabHere Desktop self-check passed")
 
