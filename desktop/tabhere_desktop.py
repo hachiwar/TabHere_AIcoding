@@ -248,7 +248,7 @@ def extract_output(value: str) -> str:
 
 def request_json(url: str, api_key: str, payload: dict) -> dict:
     payload = {**payload, "stream": False}
-    for attempt in range(2):
+    for attempt in range(3):
         request = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
@@ -273,9 +273,9 @@ def request_json(url: str, api_key: str, payload: dict) -> dict:
                         pass
         except urllib.error.HTTPError as error:
             raise RuntimeError(f"API HTTP {error.code}") from error
-        if attempt == 0:
-            time.sleep(0.2)
-    raise RuntimeError("API 连续两次返回空响应")
+        if attempt < 2:
+            time.sleep(0.5 * (2 ** attempt))
+    raise RuntimeError("API 连续三次返回空响应")
 
 
 def generate_answer(text: str, config: dict) -> str:
@@ -559,7 +559,7 @@ def self_test() -> None:
     assert "Output code only" in SYSTEM_PROMPT and "Never output comments" in SYSTEM_PROMPT
     assert tray_image("working").size == (64, 64)
     assert tray_image("success").getpixel((0, 0)) != tray_image("error").getpixel((0, 0))
-    with patch("urllib.request.urlopen", side_effect=[FakeResponse(b""), FakeResponse(b'{"ok":true}')]), patch("time.sleep"):
+    with patch("urllib.request.urlopen", side_effect=[FakeResponse(b""), FakeResponse(b""), FakeResponse(b'{"ok":true}')]), patch("time.sleep"):
         assert request_json("https://example.test", "sk-test", {}) == {"ok": True}
     assert pystray.Icon("test", Image.new("RGB", (1, 1))).name == "test"
     print("TabHere Desktop self-check passed")
