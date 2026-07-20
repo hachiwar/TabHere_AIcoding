@@ -27,18 +27,12 @@
       }
       input[type="text"],
       input[type="password"],
-      input[type="number"],
-      textarea,
-      select {
+      input[type="number"] {
         width: 100%;
         box-sizing: border-box;
         padding: 8px;
         margin-top: 6px;
         font-size: 14px;
-      }
-      textarea {
-        min-height: 60px;
-        resize: vertical;
       }
       .row {
         display: grid;
@@ -129,71 +123,17 @@
 
       <div class="row">
         <label>
-          <span data-i18n="maxTokensLabel">Max completion length (tokens)</span>
-          <input id="maxOutputTokens" type="number" min="0" max="512" step="1" />
-        </label>
-
-        <label>
           <span data-i18n="temperatureLabel">Temperature</span>
-          <input id="temperature" type="number" min="0" max="2" step="0.1" />
+          <input id="temperature" type="number" min="0" max="0.2" step="0.1" />
         </label>
       </div>
 
-      <label>
-        <span data-i18n="userInstructionsLabel">Personalization (optional)</span>
-        <textarea id="userInstructions" data-i18n-placeholder="userInstructionsPlaceholder"></textarea>
-        <div class="hint" data-i18n="userInstructionsHint">
-          This text will be included in the system prompt to personalize suggestions.
-        </div>
-      </label>
-    </div>
-
-    <div class="section">
-      <div class="row">
-        <label>
-          <span data-i18n="debounceLabel">Trigger delay (ms)</span>
-          <input id="debounceMs" type="number" min="0" step="50" />
-        </label>
-
-        <label>
-          <span data-i18n="minTriggerLabel">Minimum trigger characters</span>
-          <input id="minTriggerChars" type="number" min="0" step="1" />
-        </label>
-      </div>
-
-      <label>
-        <span data-i18n="shortcutLabel">Shortcut</span>
-        <select id="shortcutKey">
-          <option value="Tab" data-i18n="shortcutTabOption">Tab</option>
-          <option value="Shift" data-i18n="shortcutShiftOption">Shift</option>
-          <option value="Ctrl" data-i18n="shortcutCtrlOption">Ctrl</option>
-        </select>
-      </label>
     </div>
 
     <div class="section">
       <label class="checkbox">
         <input id="useSync" type="checkbox" />
         <span data-i18n="useSyncLabel">Sync settings &amp; API key (chrome.storage.sync)</span>
-      </label>
-      <label class="checkbox">
-        <input id="disableOnSensitive" type="checkbox" />
-        <span data-i18n="disableSensitiveLabel">Disable on sensitive inputs</span>
-      </label>
-      <label class="checkbox">
-        <input id="developerDebug" type="checkbox" />
-        <span data-i18n="developerDebugLabel">Developer debug mode</span>
-      </label>
-    </div>
-
-    <div class="section">
-      <label>
-        <span data-i18n="enabledSitesLabel">Allowed sites</span>
-        <textarea id="enabledSites" data-i18n-placeholder="enabledSitesPlaceholder"></textarea>
-      </label>
-      <label>
-        <span data-i18n="disabledSitesLabel">Blocked sites</span>
-        <textarea id="disabledSites" data-i18n-placeholder="disabledSitesPlaceholder"></textarea>
       </label>
     </div>
 

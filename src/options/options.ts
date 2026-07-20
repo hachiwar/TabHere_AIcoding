@@ -1,5 +1,5 @@
 import { DEFAULT_CONFIG, getConfig, saveConfig } from "../shared/config";
-import type { ShortcutKey, TestApiRequestMessage, TestApiResponseMessage } from "../shared/types";
+import type { TestApiRequestMessage, TestApiResponseMessage } from "../shared/types";
 
 function t(key: string, substitutions?: string | string[]) {
   const msg = chrome.i18n.getMessage(key, substitutions);
@@ -33,17 +33,8 @@ localizePage();
 const apiKeyInput = document.getElementById("apiKey") as HTMLInputElement;
 const baseUrlInput = document.getElementById("baseUrl") as HTMLInputElement;
 const modelInput = document.getElementById("model") as HTMLInputElement;
-const maxOutputTokensInput = document.getElementById("maxOutputTokens") as HTMLInputElement;
 const temperatureInput = document.getElementById("temperature") as HTMLInputElement;
-const userInstructionsTextarea = document.getElementById("userInstructions") as HTMLTextAreaElement;
-const debounceMsInput = document.getElementById("debounceMs") as HTMLInputElement;
-const minTriggerCharsInput = document.getElementById("minTriggerChars") as HTMLInputElement;
-const shortcutKeySelect = document.getElementById("shortcutKey") as HTMLSelectElement;
 const useSyncCheckbox = document.getElementById("useSync") as HTMLInputElement;
-const disableOnSensitiveCheckbox = document.getElementById("disableOnSensitive") as HTMLInputElement;
-const developerDebugCheckbox = document.getElementById("developerDebug") as HTMLInputElement;
-const enabledSitesTextarea = document.getElementById("enabledSites") as HTMLTextAreaElement;
-const disabledSitesTextarea = document.getElementById("disabledSites") as HTMLTextAreaElement;
 const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const testApiBtn = document.getElementById("testApi") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
@@ -57,13 +48,6 @@ if (versionEl) {
 function setStatus(message: string, isError = false) {
   statusEl.textContent = message;
   statusEl.style.color = isError ? "#c00" : "#0a7";
-}
-
-function parseSites(value: string): string[] {
-  return value
-    .split(/[\n,]/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 async function ensureOptionalHostPermission(baseUrl: string) {
@@ -89,17 +73,8 @@ async function load() {
   apiKeyInput.value = cfg.apiKey || "";
   baseUrlInput.value = cfg.baseUrl;
   modelInput.value = cfg.model;
-  maxOutputTokensInput.value = String(cfg.maxOutputTokens);
   temperatureInput.value = String(cfg.temperature);
-  userInstructionsTextarea.value = cfg.userInstructions || "";
-  debounceMsInput.value = String(cfg.debounceMs);
-  minTriggerCharsInput.value = String(cfg.minTriggerChars);
-  shortcutKeySelect.value = cfg.shortcutKey;
   useSyncCheckbox.checked = cfg.useSync;
-  disableOnSensitiveCheckbox.checked = cfg.disableOnSensitive;
-  developerDebugCheckbox.checked = cfg.developerDebug;
-  enabledSitesTextarea.value = cfg.enabledSites.join("\n");
-  disabledSitesTextarea.value = cfg.disabledSites.join("\n");
 }
 
 saveBtn.addEventListener("click", async () => {
@@ -123,55 +98,15 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
 
-  const maxTokensStr = maxOutputTokensInput.value.trim();
-  let maxOutputTokens = DEFAULT_CONFIG.maxOutputTokens;
-  if (maxTokensStr) {
-    const parsed = Number(maxTokensStr);
-    if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
-      setStatus(t("errorMaxTokensInvalid"), true);
-      return;
-    }
-    maxOutputTokens = parsed;
-  }
-
   const tempStr = temperatureInput.value.trim();
   let temperature = DEFAULT_CONFIG.temperature;
   if (tempStr) {
     const parsed = Number(tempStr);
-    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 2) {
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 0.2) {
       setStatus(t("errorTemperatureInvalid"), true);
       return;
     }
     temperature = parsed;
-  }
-
-  const userInstructionsRaw = userInstructionsTextarea.value;
-  const userInstructions = userInstructionsRaw.trim();
-  if (userInstructions.length > 1000) {
-    setStatus(t("errorUserInstructionsTooLong", "1000"), true);
-    return;
-  }
-
-  const debounceStr = debounceMsInput.value.trim();
-  let debounceMs = DEFAULT_CONFIG.debounceMs;
-  if (debounceStr) {
-    const parsed = Number(debounceStr);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setStatus(t("errorDebounceInvalid"), true);
-      return;
-    }
-    debounceMs = parsed;
-  }
-
-  const minTriggerStr = minTriggerCharsInput.value.trim();
-  let minTriggerChars = DEFAULT_CONFIG.minTriggerChars;
-  if (minTriggerStr) {
-    const parsed = Number(minTriggerStr);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setStatus(t("errorMinTriggerInvalid"), true);
-      return;
-    }
-    minTriggerChars = parsed;
   }
 
   await ensureOptionalHostPermission(baseUrl);
@@ -180,17 +115,8 @@ saveBtn.addEventListener("click", async () => {
     apiKey,
     baseUrl,
     model: modelInput.value.trim() || DEFAULT_CONFIG.model,
-    maxOutputTokens,
     temperature,
-    userInstructions,
-    debounceMs,
-    minTriggerChars,
-    shortcutKey: shortcutKeySelect.value as ShortcutKey,
-    useSync: useSyncCheckbox.checked,
-    disableOnSensitive: disableOnSensitiveCheckbox.checked,
-    developerDebug: developerDebugCheckbox.checked,
-    enabledSites: parseSites(enabledSitesTextarea.value),
-    disabledSites: parseSites(disabledSitesTextarea.value)
+    useSync: useSyncCheckbox.checked
   };
 
   try {

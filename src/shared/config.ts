@@ -1,148 +1,47 @@
-import type { TabHereConfig, ShortcutKey } from "./types";
+import type { TabHereConfig } from "./types";
+
+const buildEnv = (import.meta as ImportMeta & { env?: Record<string, string> }).env ?? {};
 
 const DEFAULT_CONFIG: TabHereConfig = {
-  apiKey: undefined,
-  userInstructions: "",
-  model: "gpt-5-nano",
-  baseUrl: "https://api.openai.com/v1",
-  maxOutputTokens: 0,
-  temperature: 0.8,
-  debounceMs: 500,
-  minTriggerChars: 3,
-  shortcutKey: "Tab",
-  useSync: true,
-  disabledSites: [],
-  enabledSites: [],
-  disableOnSensitive: true,
-  developerDebug: false
+  apiKey: buildEnv.VITE_TABHERE_API_KEY || undefined,
+  model: buildEnv.VITE_TABHERE_MODEL || "gpt-5-nano",
+  baseUrl: buildEnv.VITE_TABHERE_BASE_URL || "https://api.openai.com/v1",
+  temperature: 0.2,
+  useSync: true
 };
 
-const SHORTCUT_KEYS = ["Tab", "Shift", "Ctrl"] as const satisfies readonly ShortcutKey[];
+const CONFIG_KEYS = ["tabhere_api_key", "tabhere_model", "tabhere_base_url", "tabhere_temperature"];
 
-function normalizeShortcutKey(value: unknown, fallback: ShortcutKey): ShortcutKey {
-  if (typeof value !== "string") return fallback;
-  return (SHORTCUT_KEYS as readonly string[]).includes(value) ? (value as ShortcutKey) : fallback;
-}
-
-const CONFIG_KEYS = [
-  "tabhere_api_key",
-  "tabhere_user_instructions",
-  "tabhere_model",
-  "tabhere_base_url",
-  "tabhere_max_output_tokens",
-  "tabhere_temperature",
-  "tabhere_debounce_ms",
-  "tabhere_min_trigger_chars",
-  "tabhere_shortcut_key",
-  "tabhere_use_sync",
-  "tabhere_disabled_sites",
-  "tabhere_enabled_sites",
-  "tabhere_disable_on_sensitive",
-  "tabhere_developer_debug"
-] as const;
-
-type ConfigStorageShape = {
-  tabhere_api_key?: string;
-  tabhere_user_instructions?: string;
-  tabhere_model?: string;
-  tabhere_base_url?: string;
-  tabhere_max_output_tokens?: number;
-  tabhere_temperature?: number;
-  tabhere_debounce_ms?: number;
-  tabhere_min_trigger_chars?: number;
-  tabhere_shortcut_key?: unknown;
-  tabhere_use_sync?: boolean;
-  tabhere_disabled_sites?: string[];
-  tabhere_enabled_sites?: string[];
-  tabhere_disable_on_sensitive?: boolean;
-  tabhere_developer_debug?: boolean;
-};
-
-function normalizeNonNegativeInteger(value: unknown, fallback: number): number {
-  if (typeof value !== "number") return fallback;
-  if (!Number.isFinite(value)) return fallback;
-  if (value < 0) return fallback;
-  if (!Number.isInteger(value)) return fallback;
-  return value;
-}
-
-function normalizeUserInstructions(value: unknown): string {
-  if (typeof value !== "string") return "";
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  return trimmed.length > 1000 ? trimmed.slice(0, 1000) : trimmed;
-}
-
-function getStorageArea(useSync: boolean) {
-  return useSync ? chrome.storage.sync : chrome.storage.local;
-}
-
-function storageGet<T>(area: chrome.storage.StorageArea, keys: readonly string[]): Promise<T> {
-  return new Promise((resolve) => {
-    area.get(keys as any, (res) => resolve(res as T));
-  });
-}
-
-function storageSet(area: chrome.storage.StorageArea, items: Record<string, any>): Promise<void> {
-  return new Promise((resolve) => {
-    area.set(items, () => resolve());
-  });
+function normalizeTemperature(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(Math.max(value, 0), 0.2)
+    : DEFAULT_CONFIG.temperature;
 }
 
 export async function getConfig(): Promise<TabHereConfig> {
-  const useSyncRes = await storageGet<Pick<ConfigStorageShape, "tabhere_use_sync">>(
-    chrome.storage.sync,
-    ["tabhere_use_sync"]
-  );
-  const useSync = useSyncRes.tabhere_use_sync ?? DEFAULT_CONFIG.useSync;
-
-  const storage = getStorageArea(useSync);
-  const res = await storageGet<ConfigStorageShape>(storage, CONFIG_KEYS);
+  const sync = await chrome.storage.sync.get("tabhere_use_sync");
+  const useSync = sync.tabhere_use_sync ?? DEFAULT_CONFIG.useSync;
+  const stored = await (useSync ? chrome.storage.sync : chrome.storage.local).get(CONFIG_KEYS);
 
   return {
-    apiKey: res.tabhere_api_key,
-    userInstructions: normalizeUserInstructions(res.tabhere_user_instructions) || DEFAULT_CONFIG.userInstructions,
-    model: res.tabhere_model || DEFAULT_CONFIG.model,
-    baseUrl: res.tabhere_base_url || DEFAULT_CONFIG.baseUrl,
-    maxOutputTokens: normalizeNonNegativeInteger(res.tabhere_max_output_tokens, DEFAULT_CONFIG.maxOutputTokens),
-    temperature: res.tabhere_temperature ?? DEFAULT_CONFIG.temperature,
-    debounceMs: res.tabhere_debounce_ms ?? DEFAULT_CONFIG.debounceMs,
-    minTriggerChars: res.tabhere_min_trigger_chars ?? DEFAULT_CONFIG.minTriggerChars,
-    shortcutKey: normalizeShortcutKey(res.tabhere_shortcut_key, DEFAULT_CONFIG.shortcutKey),
-    useSync,
-    disabledSites: res.tabhere_disabled_sites ?? DEFAULT_CONFIG.disabledSites,
-    enabledSites: res.tabhere_enabled_sites ?? DEFAULT_CONFIG.enabledSites,
-    disableOnSensitive: res.tabhere_disable_on_sensitive ?? DEFAULT_CONFIG.disableOnSensitive,
-    developerDebug: res.tabhere_developer_debug ?? DEFAULT_CONFIG.developerDebug
+    apiKey: buildEnv.VITE_TABHERE_API_KEY || stored.tabhere_api_key,
+    model: buildEnv.VITE_TABHERE_MODEL || stored.tabhere_model || DEFAULT_CONFIG.model,
+    baseUrl: buildEnv.VITE_TABHERE_BASE_URL || stored.tabhere_base_url || DEFAULT_CONFIG.baseUrl,
+    temperature: normalizeTemperature(stored.tabhere_temperature),
+    useSync
   };
 }
 
 export async function saveConfig(partial: Partial<TabHereConfig>): Promise<void> {
-  const current = await getConfig();
-  const next: TabHereConfig = { ...current, ...partial };
-  next.maxOutputTokens = normalizeNonNegativeInteger(next.maxOutputTokens, DEFAULT_CONFIG.maxOutputTokens);
-  next.userInstructions = normalizeUserInstructions(next.userInstructions);
-
-  await storageSet(chrome.storage.sync, { tabhere_use_sync: next.useSync });
-  const storage = getStorageArea(next.useSync);
-
-  const toSave: ConfigStorageShape = {
+  const next = { ...(await getConfig()), ...partial };
+  next.temperature = normalizeTemperature(next.temperature);
+  await chrome.storage.sync.set({ tabhere_use_sync: next.useSync });
+  await (next.useSync ? chrome.storage.sync : chrome.storage.local).set({
     tabhere_api_key: next.apiKey,
-    tabhere_user_instructions: next.userInstructions,
     tabhere_model: next.model,
     tabhere_base_url: next.baseUrl,
-    tabhere_max_output_tokens: next.maxOutputTokens,
-    tabhere_temperature: next.temperature,
-    tabhere_debounce_ms: next.debounceMs,
-    tabhere_min_trigger_chars: next.minTriggerChars,
-    tabhere_shortcut_key: next.shortcutKey,
-    tabhere_disabled_sites: next.disabledSites,
-    tabhere_enabled_sites: next.enabledSites,
-    tabhere_disable_on_sensitive: next.disableOnSensitive,
-    tabhere_developer_debug: next.developerDebug
-  };
-
-  await storageSet(storage, toSave as Record<string, any>);
+    tabhere_temperature: next.temperature
+  });
 }
 
 export { DEFAULT_CONFIG };

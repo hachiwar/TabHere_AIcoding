@@ -6,7 +6,9 @@
 
 ---
 
-TabHere is a Chrome extension that provides AI-powered auto continuation/completion for almost any editable area on web pages.
+TabHere is a Chrome extension that sends a copied programming problem to your configured AI provider and writes a complete Java 17 `public class Main` solution back to the system clipboard.
+
+Select a problem description on a webpage and copy it. When the extension badge changes from `...` to `✓`, paste the generated Java code anywhere with Ctrl+V. A `!` badge means the request failed.
 
 ## Development
 

@@ -1,6 +1,6 @@
 {
   "extName": { "message": "TabHere" },
-  "extDesc": { "message": "AI autocomplete in any text box." },
+  "extDesc": { "message": "Turn a copied programming problem into Java code ready to paste." },
 
   "optPageTitle": { "message": "TabHere Settings" },
   "optHeading": { "message": "TabHere Settings" },
@@ -18,38 +18,9 @@
   "modelLabel": { "message": "Model ID" },
   "modelPlaceholder": { "message": "gpt-5-nano" },
 
-  "maxTokensLabel": { "message": "Max completion length (tokens, 0 = unlimited)" },
   "temperatureLabel": { "message": "Temperature" },
 
-  "userInstructionsLabel": { "message": "Personalization (optional)" },
-  "userInstructionsPlaceholder": {
-    "message": "Example:\n- Preferred tone: concise and friendly\n- Signature: Best, Alice\n- Use Chinese punctuation"
-  },
-  "userInstructionsHint": {
-    "message": "This text will be included in the system prompt and sent to the model to personalize suggestions. You may include personal info and tone preferences. Do NOT include passwords, OTPs, or payment details."
-  },
-
-  "debounceLabel": { "message": "Trigger delay (ms)" },
-  "minTriggerLabel": { "message": "Minimum trigger characters" },
-
-  "shortcutLabel": { "message": "Shortcut" },
-  "shortcutTabOption": { "message": "Tab" },
-  "shortcutShiftOption": { "message": "Shift" },
-  "shortcutCtrlOption": { "message": "Ctrl" },
-
   "useSyncLabel": { "message": "Sync settings & API key (chrome.storage.sync)" },
-  "disableSensitiveLabel": { "message": "Disable on sensitive inputs (password/OTP)" },
-  "developerDebugLabel": { "message": "Developer debug mode (logs to the console)" },
-
-  "enabledSitesLabel": {
-    "message": "Allowed sites (comma/newline separated, empty = all sites)"
-  },
-  "enabledSitesPlaceholder": { "message": "example.com" },
-
-  "disabledSitesLabel": { "message": "Blocked sites (comma/newline separated)" },
-  "disabledSitesPlaceholder": {
-    "message": "bank.com, mail.example.com"
-  },
 
   "saveButtonLabel": { "message": "Save" },
   "testApiButtonLabel": { "message": "Test API" },
@@ -65,15 +36,7 @@
     "message": "This API key doesn't look right (should start with sk-). Save anyway?"
   },
   "errorBaseUrlInvalid": { "message": "Base URL is invalid." },
-  "errorMaxTokensInvalid": { "message": "Max tokens must be a non-negative integer (0 = unlimited)." },
-  "errorUserInstructionsTooLong": { "message": "Personalization text is too long (max $1 characters)." },
-  "errorTemperatureInvalid": { "message": "Temperature must be between 0 and 2." },
-  "errorDebounceInvalid": {
-    "message": "Trigger delay must be a non-negative number."
-  },
-  "errorMinTriggerInvalid": {
-    "message": "Minimum trigger characters must be non-negative."
-  },
+  "errorTemperatureInvalid": { "message": "Temperature must be between 0 and 0.2 for reliable code generation." },
   "warningOptionalPermissionDenied": {
     "message": "Optional permission for custom Base URL was not granted; requests may fail."
   },

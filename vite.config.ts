@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 export default defineConfig({
   root: "src",
-  publicDir: "../public",
+  envDir: "..",
   base: "./",
   build: {
     outDir: "../dist",
@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         background: resolve(__dirname, "src/background.ts"),
         content: resolve(__dirname, "src/content.ts"),
+        offscreen: resolve(__dirname, "src/offscreen/offscreen.html"),
         options: resolve(__dirname, "src/options/options.html")
       },
       output: {

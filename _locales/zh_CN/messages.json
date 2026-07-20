@@ -1,6 +1,6 @@
 {
   "extName": { "message": "TabHere" },
-  "extDesc": { "message": "在任意输入框中使用 AI 自动补全。" },
+  "extDesc": { "message": "把复制的编程题转换为可直接粘贴的 Java 代码。" },
 
   "optPageTitle": { "message": "TabHere 设置" },
   "optHeading": { "message": "TabHere 设置" },
@@ -18,40 +18,9 @@
   "modelLabel": { "message": "模型 ID" },
   "modelPlaceholder": { "message": "gpt-5-nano" },
 
-  "maxTokensLabel": { "message": "最大补全长度（tokens，0=不限）" },
   "temperatureLabel": { "message": "温度（temperature）" },
 
-  "userInstructionsLabel": { "message": "个性化偏好/个人信息（可选）" },
-  "userInstructionsPlaceholder": {
-    "message": "示例：\n- 语气：简洁、友好\n- 署名：此致，Alice\n- 使用中文标点"
-  },
-  "userInstructionsHint": {
-    "message": "这段文字会注入到提示词中，并随请求发送给模型以实现个性化补全/改写。你可以填写个人信息和语气偏好。请不要填写密码、验证码或支付信息等敏感内容。"
-  },
-
-  "debounceLabel": { "message": "补全触发延迟（ms）" },
-  "minTriggerLabel": { "message": "最低触发字数" },
-
-  "shortcutLabel": { "message": "快捷键" },
-  "shortcutTabOption": { "message": "Tab" },
-  "shortcutShiftOption": { "message": "Shift" },
-  "shortcutCtrlOption": { "message": "Ctrl" },
-
   "useSyncLabel": { "message": "同步设置与 API Key（chrome.storage.sync）" },
-  "disableSensitiveLabel": { "message": "在敏感输入框禁用（如密码/验证码）" },
-  "developerDebugLabel": { "message": "开发者调试模式（开启后在控制台输出信息用于调试）" },
-
-  "enabledSitesLabel": {
-    "message": "站点白名单（逗号或换行分隔，留空表示全站启用）"
-  },
-  "enabledSitesPlaceholder": { "message": "example.com" },
-
-  "disabledSitesLabel": {
-    "message": "站点黑名单（逗号或换行分隔）"
-  },
-  "disabledSitesPlaceholder": {
-    "message": "bank.com, mail.example.com"
-  },
 
   "saveButtonLabel": { "message": "保存设置" },
   "testApiButtonLabel": { "message": "测试 API" },
@@ -67,11 +36,7 @@
     "message": "API Key 看起来不正确（应以 sk- 开头）。仍然保存吗？"
   },
   "errorBaseUrlInvalid": { "message": "Base URL 无效" },
-  "errorMaxTokensInvalid": { "message": "最大补全长度需为非负整数（0=不限）" },
-  "errorUserInstructionsTooLong": { "message": "个性化内容过长（最多 $1 个字符）" },
-  "errorTemperatureInvalid": { "message": "温度需在 0~2 之间" },
-  "errorDebounceInvalid": { "message": "补全触发延迟需为非负数" },
-  "errorMinTriggerInvalid": { "message": "最低触发字数需为非负数" },
+  "errorTemperatureInvalid": { "message": "为提高代码稳定性，温度需在 0~0.2 之间" },
   "warningOptionalPermissionDenied": {
     "message": "未授权自定义 Base URL 的访问权限，可能导致请求失败。"
   },
