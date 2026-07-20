@@ -3,3 +3,6 @@ dist
 .DS_Store
 release
 .env.local
+*.spec
+__pycache__/
+*.pyc

@@ -1,30 +1,28 @@
-# TabHere
+# TabHere Desktop
 
-[![Release](https://img.shields.io/github/v/release/scarletkc/TabHere?style=flat-square)](https://github.com/scarletkc/TabHere/releases)
+TabHere Desktop is a standalone Windows assistant for competitive programming. It watches for physical `Ctrl+C` presses in any application, sends the copied plain text to your configured AI provider, and replaces the clipboard with a complete Java 17 `public class Main` solution.
 
-**English** | **[中文](./docs/README.zh.md)**
+Chrome is not required. If the old TabHere Chrome extension is installed, disable it in `chrome://extensions/` to avoid duplicate requests inside Chrome.
 
----
+## Use
 
-TabHere is a Chrome extension that sends a copied programming problem to your configured AI provider and writes a complete Java 17 `public class Main` solution back to the system clipboard.
+1. Run `release/TabHereDesktop.exe`.
+2. Enter the API key, OpenAI-compatible Base URL, and model ID on first launch.
+3. Copy a programming problem with `Ctrl+C` in any Windows application.
+4. Paste after the tray notification confirms that the Java answer is ready.
 
-Select a problem description on a webpage and copy it. When the extension badge changes from `...` to `✓`, paste the generated Java code anywhere with Ctrl+V. A `!` badge means the request failed.
+The tray menu provides pause/resume, settings, and exit. Monitoring and Windows sign-in startup are enabled by default. The API key is protected with Windows DPAPI.
 
-## Development
+See [desktop/README.zh.md](./desktop/README.zh.md) for Chinese documentation and [docs/privacy-policy.md](./docs/privacy-policy.md) for data-handling details.
 
-```bash
-npm install
-npm run build     # output to dist/
-npm run dev       # watch mode
-npm run package   # build release package
-npm run version:set -- x.y.z  # set version
+## Build
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\desktop\build.ps1
 ```
 
-In `chrome://extensions/` → enable **Developer mode** → **Load unpacked**, then select the project root directory.
+The standalone executable is written to `release/TabHereDesktop.exe`; Python is not required on the target computer.
 
-## Links
+## License
 
-- [Chrome Web Store](https://chromewebstore.google.com/detail/oeokpncnejjfjdbpnchhldjdabhppnlb)
-- [Privacy Policy](https://github.com/scarletkc/TabHere/blob/main/docs/privacy-policy.md)
-- [Roadmap](./docs/roadmap.md)
-- [MIT License](./LICENSE)
+[MIT](./LICENSE)
